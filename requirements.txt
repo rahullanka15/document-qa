@@ -1,2 +1,9 @@
 streamlit
-openai
+google-generativeai
+PyPDF2
+python-docx
+transformers
+sentence-transformers
+chromadb
+torch
+python-docx
