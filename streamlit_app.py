@@ -692,3 +692,12 @@ else:
 # Footer
 st.markdown("---")
 st.markdown("💡 Powered by Gemini AI - Here to help you understand your documents! 🚀")
+
+# Custom CSS to hide GitHub and Streamlit branding
+hide_streamlit_style = """
+    <style>
+        footer {visibility: hidden;}
+        .css-1d391kg {visibility: hidden;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
