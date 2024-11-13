@@ -1,10 +1,36 @@
-streamlit
-google-generativeai
-PyPDF2
-python-docx
-transformers
-sentence-transformers
-chromadb
-torch
-python-docx
-requests
+# Core dependencies
+streamlit>=1.28.0
+pandas>=1.5.0
+numpy>=1.24.0
+
+# Document processing
+PyPDF2>=3.0.0
+python-docx>=0.8.11
+docx2txt>=0.8
+
+# AI/ML dependencies
+torch>=2.0.0
+transformers>=4.34.0
+sentence-transformers>=2.2.2
+google-generativeai>=0.3.0
+protobuf>=4.24.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Visualization
+plotly>=5.17.0
+
+# HTTP requests and async
+requests>=2.31.0
+aiohttp>=3.8.5
+asyncio>=3.4.3
+
+# Utility packages
+python-magic>=0.4.27
+tqdm>=4.66.1
+colorama>=0.4.6
+
+# Optional but recommended for better performance
+nvidia-cuda-runtime-cu11>=11.8.89  # Only if using GPU
+nvidia-cudnn-cu11>=8.7.0.84       # Only if using GPU
