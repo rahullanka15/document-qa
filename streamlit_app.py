@@ -1,4 +1,5 @@
 import time
+import pandas as pd
 import streamlit as st
 import google.generativeai as genai
 import PyPDF2
@@ -8,7 +9,10 @@ import requests
 from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, List, Optional, Tuple
 import os
+import tempfile
+import subprocess
 import logging
+import plotly.express as px
 from sentence_transformers import SentenceTransformer, util
 import torch
 import gc
@@ -17,6 +21,13 @@ from PIL import Image
 import warnings
 import re
 from pathlib import Path
+
+# Transformers imports
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    pipeline
+)
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -66,6 +77,8 @@ HEADERS = {
 # Session state initialization
 def init_session_state():
     """Initialize session state variables"""
+    if 'topic_classifier' not in st.session_state:
+        st.session_state.topic_classifier = None
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
     if 'documents' not in st.session_state:
@@ -175,6 +188,48 @@ class PDFProcessor:
             }
         except Exception as e:
             logger.error(f"PDF processing error: {str(e)}")
+            raise
+
+class DOCProcessor:
+    """Handles DOC document processing (older Word format)"""
+    
+    @staticmethod
+    def process(file) -> Dict[str, str]:
+        """Process DOC files with formatting preservation"""
+        try:
+            # Create a temporary file to store the uploaded content
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.doc') as temp_file:
+                temp_file.write(file.read())
+                temp_path = temp_file.name
+            
+            try:
+                # Try using antiword first (more reliable for old .doc files)
+                text = subprocess.check_output(['antiword', temp_path]).decode('utf-8')
+            except (subprocess.SubprocessError, FileNotFoundError):
+                try:
+                    # Fallback to using python-docx
+                    doc = docx.Document(temp_path)
+                    text = '\n'.join(paragraph.text for paragraph in doc.paragraphs)
+                except Exception as e:
+                    raise ValueError(f"Could not process DOC file: {str(e)}")
+            finally:
+                # Clean up temporary file
+                os.unlink(temp_path)
+            
+            # Clean text
+            clean_text = TextProcessor.clean_text(text)
+            
+            if not clean_text:
+                raise ValueError("No valid text content in DOC file")
+                
+            return {
+                "content": clean_text,
+                "type": "doc",
+                "name": file.name
+            }
+            
+        except Exception as e:
+            logger.error(f"DOC processing error: {str(e)}")
             raise
 
 class DocxProcessor:
@@ -346,6 +401,7 @@ class DocumentProcessor:
         self.processors = {
             'pdf': PDFProcessor.process,
             'docx': DocxProcessor.process,
+            'doc': DOCProcessor.process,
             'txt': TxtProcessor.process
         }
 
@@ -366,22 +422,47 @@ class DocumentProcessor:
                 raise ValueError(f"Unsupported file format: {file_ext}")
 
             # Process document
-            result = await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                self.processors[file_ext],
-                file
-            )
+            try:
+                # Create a new event loop for the executor
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # Process the file
+                result = await loop.run_in_executor(
+                    self.executor,
+                    self.processors[file_ext],
+                    file
+                )
+                
+                if result and result.get('content'):
+                    # Add metadata
+                    result['stats'] = {
+                        'word_count': len(result['content'].split()),
+                        'char_count': len(result['content']),
+                        'upload_time': time.time()
+                    }
 
-            if result and result.get('content'):
-                # Add metadata
-                result['stats'] = {
-                    'word_count': len(result['content'].split()),
-                    'char_count': len(result['content']),
-                    'upload_time': time.time()
-                }
-                return result
+                    # Perform automatic classification
+                    if 'topic_classifier' in st.session_state:
+                        with st.spinner(f"Classifying {file.name}..."):
+                            classification_results = st.session_state.topic_classifier.classify_document(
+                                result['content']
+                            )
+                            if classification_results:
+                                result['default_classification'] = classification_results
+                                st.success(f"✅ Classification completed for {file.name}")
+                    
+                    return result
+                
+                return None
+
+            except Exception as processing_error:
+                logger.error(f"Document processing error: {str(processing_error)}")
+                raise ValueError(f"Error processing document: {str(processing_error)}")
             
-            return None
+            finally:
+                # Clean up the loop
+                loop.close()
 
         except Exception as e:
             logger.error(f"File processing error: {str(e)}")
@@ -451,23 +532,68 @@ class DocumentProcessor:
             logger.error(f"Summarization error: {str(e)}")
             return f"Error generating summary: {str(e)}"
 
+    # async def generate_image(self, text: str, title: str = "") -> Tuple[Optional[Image.Image], Optional[str]]:
+    #     """Generate image with enhanced prompt engineering"""
+    #     try:
+    #         if not text:
+    #             logger.error("No text provided for image generation")
+    #             return None, "No text provided for image generation"
+
+    #         # Create enhanced prompt
+    #         prompt = f"""Create a visualization about:
+    #         Title: {title}
+    #         """
+
+    #         payload = {"inputs": prompt}
+
+    #         try:
+    #             response = requests.post(
+    #                 API_CONFIG['image_url'],
+    #                 headers=HEADERS,
+    #                 json=payload,
+    #                 timeout=30
+    #             )
+
+    #             if response.status_code == 200:
+    #                 image = Image.open(io.BytesIO(response.content))
+    #                 return image, None
+    #             else:
+    #                 error_msg = response.json().get('error', 'Unknown error')
+    #                 if "Max requests total reached" in error_msg:
+    #                     return None, "⏳ Rate limit reached. Please wait 60 seconds..."
+    #                 else:
+    #                     logger.error(f"Image generation failed: {error_msg}")
+    #                     return None, f"Failed to generate image: {error_msg}"
+
+    #         except requests.exceptions.RequestException as e:
+    #             return None, f"Request failed: {str(e)}"
+
+    #     except Exception as e:
+    #         return None, f"Error generating image: {str(e)}"
+
     async def generate_image(self, text: str, title: str = "") -> Tuple[Optional[Image.Image], Optional[str]]:
-        """Generate image with enhanced prompt engineering"""
+        """Generate artistic visualization of document content"""
         try:
             if not text:
-                logger.error("No text provided for image generation")
                 return None, "No text provided for image generation"
 
-            # Create enhanced prompt
-            prompt = f"""Create a visualization about:
-            Title: {title}
-            Content Summary: {text}
+            # Extract main concept/theme from title and abstract
+            main_concept = f"{title}. {text[:200]}"  # Combine title with start of text
+
+            # Create a conceptual art prompt
+            prompt = f"""Create a single artistic concept visualization:
+            Main idea: {main_concept}
             Style Requirements:
-            - Professional and clear visualization
-            - Easy to understand representation
-            - Focus on key concepts and themes
-            - Maintain academic/professional style
-            - No words. Focus on Visual learning.
+            - Modern digital art style
+            - Professional futuristic design
+            - Abstract representation of the concept
+            - Rich symbolic visualization
+            - Vibrant colors and dynamic composition
+            - Highly detailed technological aesthetic
+            - Focus on the core idea, not technical details
+            - No text, charts, or diagrams
+            - Single cohesive image that captures the essence
+            - Professional sci-fi art quality
             """
 
             payload = {"inputs": prompt}
@@ -496,33 +622,72 @@ class DocumentProcessor:
 
         except Exception as e:
             return None, f"Error generating image: {str(e)}"
-
-    async def process_files_parallel(self, files: List) -> None:
-        """Process multiple files in parallel with batch limiting"""
+            
+    def process_files_parallel(self, files: List):
+        """Process multiple files synchronously"""
         start_time = time.time()
+        
+        try:
+            if len(files) > MAX_BATCH_SIZE:
+                st.warning(f"Processing files in batches of {MAX_BATCH_SIZE}...")
 
-        if len(files) > MAX_BATCH_SIZE:
-            st.warning(f"Processing files in batches of {MAX_BATCH_SIZE}...")
+            # Initialize topic classifier once for all files
+            if 'topic_classifier' not in st.session_state:
+                st.session_state.topic_classifier = TopicClassifier()
 
-        tasks = []
-        for file in files:
-            if file.name not in st.session_state.documents:
-                st.session_state.processing_status[file.name] = "Processing..."
-                task = asyncio.create_task(self.process_single_file(file))
-                tasks.append(task)
+            for file in files:
+                if file.name not in st.session_state.documents:
+                    st.session_state.processing_status[file.name] = "Processing..."
+                    
+                    try:
+                        # Process single file
+                        file_ext = Path(file.name).suffix[1:].lower()
+                        if file_ext not in self.processors:
+                            raise ValueError(f"Unsupported file format: {file_ext}")
+                        
+                        # Direct processing without async
+                        result = self.processors[file_ext](file)
+                        
+                        if result and result.get('content'):
+                            # Add metadata
+                            result['stats'] = {
+                                'word_count': len(result['content'].split()),
+                                'char_count': len(result['content']),
+                                'upload_time': time.time()
+                            }
+                            
+                            # Perform automatic classification
+                            if st.session_state.topic_classifier:
+                                with st.spinner(f"Classifying {file.name}..."):
+                                    classification_results = st.session_state.topic_classifier.classify_document(
+                                        result['content']
+                                    )
+                                    if classification_results:
+                                        result['default_classification'] = classification_results
+                                        st.success(f"✅ Classification completed for {file.name}")
+                                    else:
+                                        st.warning(f"⚠️ Could not classify {file.name}")
+                            
+                            # Store result
+                            st.session_state.documents[file.name] = result
+                            st.session_state.active_docs.add(file.name)
+                            st.session_state.processing_status[file.name] = "Completed"
+                            st.success(f"✅ {file.name} processed successfully!")
+                    
+                    except Exception as e:
+                        error_msg = str(e)
+                        logger.error(f"Error processing {file.name}: {error_msg}")
+                        st.error(f"Error processing {file.name}: {error_msg}")
+                        st.session_state.processing_status[file.name] = f"Error: {error_msg}"
 
-        for completed_task in asyncio.as_completed(tasks):
-            result = await completed_task
-            if result:
-                file_name = result['name']
-                st.session_state.documents[file_name] = result
-                st.session_state.active_docs.add(file_name)
-                st.session_state.processing_status[file_name] = "Completed"
-                st.success(f"✅ {file_name} processed successfully!")
+            processing_time = time.time() - start_time
+            logger.info(f"Total processing time: {processing_time:.2f} seconds")
 
-        processing_time = time.time() - start_time
-        logger.info(f"Total processing time: {processing_time:.2f} seconds")
-        gc.collect()
+        except Exception as e:
+            logger.error(f"File processing error: {str(e)}")
+            st.error("An error occurred during file processing")
+        finally:
+            gc.collect()
 
 class DocumentSimilarity:
     """Handles document similarity calculations"""
@@ -719,11 +884,88 @@ def render_similarity_tab():
                     st.error(f"Error in similarity analysis: {str(e)}")
                     logger.error(f"Similarity error details: {str(e)}")
 
+
+class TopicClassifier:
+    def __init__(self):
+        self.model_id = "cross-encoder/nli-deberta-v3-large"  # Changed to recommended model
+        self.default_categories = [
+            "Artificial Intelligence", "Machine Learning", "Natural Language Processing",
+            "Computer Vision", "Robotics", "Data Science", "Physics", "Mathematics",
+            "Statistics", "Biology", "Chemistry", "Economics", "Finance", "Medicine",
+            "Engineering", "Space Science", "Earth Science", "Materials Science"
+        ]
+        self.classifier = self.initialize_classifier()
+
+    def initialize_classifier(self):
+        """Initialize the classifier with proper error handling"""
+        try:
+            st.info("Loading classification model...")
+            return pipeline(
+                "zero-shot-classification",
+                model=self.model_id,
+                device=-1,  # Force CPU usage for stability
+                hypothesis_template="This text is about {}."
+            )
+        except Exception as e:
+            st.error(f"Failed to initialize classifier: {str(e)}")
+            logger.error(f"Classifier initialization error: {str(e)}")
+            return None
+
+    def classify_document(self, text: str, categories: List[str] = None, multi_label: bool = True) -> Optional[Dict]:
+        """Classify document into topics"""
+        if self.classifier is None:
+            st.error("Classifier not properly initialized")
+            return None
+            
+        try:
+            if categories is None:
+                categories = self.default_categories
+                
+            # Clean and truncate text if needed
+            text = TextProcessor.clean_text(text)
+            if len(text) > 1024:  # Add text length limit
+                text = text[:1024]
+            
+            if not text:
+                return None
+                
+            # Run classification
+            with st.spinner("Classifying document..."):
+                result = self.classifier(
+                    text,
+                    candidate_labels=categories,
+                    multi_label=multi_label
+                )
+                
+                # Process results
+                topic_scores = list(zip(result['labels'], result['scores']))
+                topic_scores.sort(key=lambda x: x[1], reverse=True)
+                
+                return {
+                    'topics': [t[0] for t in topic_scores],
+                    'scores': [t[1] for t in topic_scores]
+                }
+                
+        except Exception as e:
+            st.error(f"Classification failed: {str(e)}")
+            logger.error(f"Classification error: {str(e)}")
+            return None
 class DocumentTabs:
     """Handles different tab views in the application"""
 
     def __init__(self, doc_processor: DocumentProcessor):
         self.doc_processor = doc_processor
+        # Initialize topic classifier properly
+        if 'topic_classifier' not in st.session_state:
+            st.session_state.topic_classifier = TopicClassifier()
+
+    def classify_uploaded_document(self, doc_name: str, doc_content: str):
+        """Classify newly uploaded document"""
+        if 'topic_classifier' in st.session_state:
+            results = st.session_state.topic_classifier.classify_document(doc_content)
+            if results:
+                st.session_state.documents[doc_name]['default_classification'] = results
+
 
     def render_chat_tab(self, tab):
         """Render chat interface tab with fixed input and proper message flow"""
@@ -862,6 +1104,120 @@ class DocumentTabs:
                         if st.button("🔄 Generate New Image", key="regenerate"):
                             asyncio.run(self.handle_image_generation(doc, selected_doc))
 
+    def render_topic_tab(self, tab):
+        """Render topic classification interface"""
+        with tab:
+            st.markdown("### Document Topic Classification")
+            
+            if not st.session_state.active_docs:
+                st.info("👈 Please upload and select documents first")
+                return
+
+            # Make sure topic classifier exists
+            if 'topic_classifier' not in st.session_state or st.session_state.topic_classifier is None:
+                st.session_state.topic_classifier = TopicClassifier()
+
+            # Perform default classification if not already done
+            for doc_name in st.session_state.active_docs:
+                doc = st.session_state.documents[doc_name]
+                if 'default_classification' not in doc:
+                    with st.spinner(f"Classifying {doc_name}..."):
+                        results = st.session_state.topic_classifier.classify_document(
+                            doc['content']
+                        )
+                        if results:
+                            doc['default_classification'] = results
+
+            # Custom categories option
+            use_custom = st.checkbox("Use custom categories", value=False)
+            
+            if use_custom:
+                custom_input = st.text_area(
+                    "Enter custom categories (one per line)",
+                    help="Enter each category on a new line"
+                )
+                categories = [cat.strip() for cat in custom_input.split('\n') if cat.strip()]
+                
+                if categories:
+                    if st.button("Classify with Custom Categories", type="primary"):
+                        for doc_name in st.session_state.active_docs:
+                            doc = st.session_state.documents[doc_name]
+                            with st.spinner(f"Classifying {doc_name}..."):
+                                results = st.session_state.topic_classifier.classify_document(
+                                    doc['content'],
+                                    categories=categories
+                                )
+                                if results:
+                                    doc['custom_classification'] = results
+                                else:
+                                    st.error(f"Failed to classify {doc_name} with custom categories")
+                else:
+                    st.warning("Please enter at least one category")
+            
+            # Display results for all documents
+            st.markdown("### Classification Results")
+            for doc_name in st.session_state.active_docs:
+                doc = st.session_state.documents[doc_name]
+                
+                with st.expander(f"📄 {doc_name}", expanded=True):
+                    # Show results based on classification type
+                    results = None
+                    if use_custom and 'custom_classification' in doc:
+                        results = doc['custom_classification']
+                        st.markdown("#### Custom Categories Classification")
+                    elif 'default_classification' in doc:
+                        results = doc['default_classification']
+                        st.markdown("#### Default Categories Classification")
+                    
+                    if results:
+                        # Create DataFrame
+                        df = pd.DataFrame({
+                            'Topic': results['topics'],
+                            'Confidence': [f"{score*100:.2f}%" for score in results['scores']]
+                        })
+                        
+                        col1, col2 = st.columns([2, 1])
+                        
+                        with col1:
+                            st.dataframe(
+                                df,
+                                column_config={
+                                    "Topic": st.column_config.TextColumn("Topic"),
+                                    "Confidence": st.column_config.TextColumn("Confidence")
+                                },
+                                hide_index=True
+                            )
+                        
+                        with col2:
+                            st.metric(
+                                "Primary Classification",
+                                results['topics'][0],
+                                f"{results['scores'][0]*100:.1f}%"
+                            )
+                        
+                        # Visualization
+                        fig = px.bar(
+                            df.head(8),
+                            x='Topic',
+                            y=[float(s.strip('%')) for s in df.head(8)['Confidence']],
+                            title='Topic Classification Results',
+                            labels={'y': 'Confidence (%)', 'x': 'Topic'}
+                        )
+                        fig.update_layout(xaxis_tickangle=-45, height=400)
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("Performing classification...")
+                        # Try to classify document
+                        with st.spinner("Classifying document..."):
+                            results = st.session_state.topic_classifier.classify_document(
+                                doc['content']
+                            )
+                            if results:
+                                doc['default_classification'] = results
+                                st.rerun()
+                            else:
+                                st.error("Classification failed")
+
     async def handle_image_generation(self, doc: Dict, doc_name: str):
         """Handle image generation process"""
         with st.spinner(f"Processing {doc_name}..."):
@@ -904,6 +1260,10 @@ def main():
     """Main application entry point"""
     # Initialize session state
     init_session_state()
+
+    # Initialize topic classifier
+    if 'topic_classifier' not in st.session_state or st.session_state.topic_classifier is None:
+        st.session_state.topic_classifier = TopicClassifier()
     
     # Setup document processor
     doc_processor = DocumentProcessor()
@@ -934,7 +1294,7 @@ def render_sidebar(doc_processor: DocumentProcessor):
     # File uploader
     uploaded_files = st.file_uploader(
         "Upload documents",
-        type=['pdf', 'docx', 'txt'],
+        type=['pdf', 'docx', 'doc', 'txt'],
         accept_multiple_files=True,
         key="file_uploader"
     )
@@ -956,7 +1316,7 @@ def render_sidebar(doc_processor: DocumentProcessor):
     
     # Process new files
     if uploaded_files:
-        asyncio.run(doc_processor.process_files_parallel(uploaded_files))
+        doc_processor.process_files_parallel(uploaded_files)  # Remove asyncio.run
     
     # Document selection
     if st.session_state.documents:
@@ -982,7 +1342,7 @@ def render_main_content(tabs_handler: DocumentTabs):
     """Render main content area with tabs"""
     # Determine which tabs to show
     show_similarity = len(st.session_state.active_docs) >= 2
-    tabs = ["💭 Chat", "📑 Documents", "🎨 Images"]
+    tabs = ["💭 Chat", "📑 Documents", "🎨 Images", "📊 Topics"]
     if show_similarity:
         tabs.append("🔄 Similarity")
     
@@ -993,9 +1353,10 @@ def render_main_content(tabs_handler: DocumentTabs):
     tabs_handler.render_chat_tab(selected_tabs[0])
     tabs_handler.render_documents_tab(selected_tabs[1])
     tabs_handler.render_image_tab(selected_tabs[2])
+    tabs_handler.render_topic_tab(selected_tabs[3])
     
     if show_similarity:
-        with selected_tabs[3]:
+        with selected_tabs[4]:
             render_similarity_tab()
 
 if __name__ == "__main__":
