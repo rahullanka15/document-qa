@@ -104,6 +104,21 @@ class DocumentContainer:
                     st.metric("Lines", stats['line_count'])
 
             # Similarity Section (if available)
+            # if 'similarities' in doc_info and doc_info['similarities']:
+            #     st.markdown("### 🔄 Similar Documents")
+            #     similarities = doc_info['similarities']
+            #     if similarities:  # Check if not empty
+            #         for other_doc, score in sorted(similarities.items(), key=lambda x: x[1], reverse=True):
+            #             score_color = "green" if score > 70 else "orange" if score > 40 else "red"
+            #             st.markdown(f"""
+            #                 <div style='padding: 10px; 
+            #                         border-left: 4px solid {score_color}; 
+            #                         margin: 5px 0;
+            #                         background-color: #f8f9fa;
+            #                         border-radius: 0 5px 5px 0;'>
+            #                     <strong>{other_doc.split('.')[0]}</strong>: {score:.1f}% similar
+            #                 </div>
+            #             """, unsafe_allow_html=True)
             if 'similarities' in doc_info and doc_info['similarities']:
                 st.markdown("### 🔄 Similar Documents")
                 similarities = doc_info['similarities']
@@ -111,12 +126,29 @@ class DocumentContainer:
                     for other_doc, score in sorted(similarities.items(), key=lambda x: x[1], reverse=True):
                         score_color = "green" if score > 70 else "orange" if score > 40 else "red"
                         st.markdown(f"""
-                            <div style='padding: 10px; 
-                                    border-left: 4px solid {score_color}; 
-                                    margin: 5px 0;
-                                    background-color: #f8f9fa;
-                                    border-radius: 0 5px 5px 0;'>
-                                <strong>{other_doc.split('.')[0]}</strong>: {score:.1f}% similar
+                            <div style='
+                                padding: 10px; 
+                                border-left: 4px solid {score_color}; 
+                                margin: 5px 0;
+                                background-color: transparent;
+                                border-radius: 0 5px 5px 0;
+                                box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+                            '>
+                                <style>
+                                    /* Specific styling for dark mode */
+                                    [data-theme="dark"] .similarity-score {{
+                                        background-color: rgba(49, 51, 63, 0.8);
+                                        color: rgba(250, 250, 250, 0.9);
+                                    }}
+                                    /* Specific styling for light mode */
+                                    [data-theme="light"] .similarity-score {{
+                                        background-color: rgba(240, 242, 246, 0.8);
+                                        color: rgb(49, 51, 63);
+                                    }}
+                                </style>
+                                <div class="similarity-score">
+                                    <strong>{other_doc.split('.')[0]}</strong>: {score:.1f}% similar
+                                </div>
                             </div>
                         """, unsafe_allow_html=True)
 
