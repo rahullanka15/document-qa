@@ -1386,12 +1386,22 @@ class DocumentAssistant:
             initial_sidebar_state="expanded"
         )
 
+        # Hide all Streamlit elements
         hide_streamlit_style = """
             <style>
-            #MainMenu {visibility: hidden;}   # Hides the hamburger menu
-            footer {visibility: hidden;}      # Hides the footer (Streamlit branding)
+            #MainMenu {visibility: hidden;}            /* Hide the hamburger menu */
+            footer {visibility: hidden;}               /* Hide the footer */
+            .stDeployButton {display: none;}           /* Hide the deploy button */
+            #stDecoration {display: none;}             /* Hide the decoration */
+            header {visibility: hidden;}               /* Hide the header */
+            .viewerBadge_container__r5tak {display: none !important;}  /* Hide GitHub/deployment buttons */
+            .viewerBadge_link__qRIco {display: none !important;}       /* Hide viewer badge links */
+            .stToolbar {display: none !important;}                     /* Hide the toolbar */
+            .stGitButton {display: none !important;}                   /* Hide Git button */
+            [data-testid="stGitButtonContainer"] {display: none !important;} /* Hide Git container */
+            [data-testid="StyledGitButton"] {display: none !important;}     /* Hide Styled Git button */
             </style>
-            """
+        """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
         # Add custom CSS
