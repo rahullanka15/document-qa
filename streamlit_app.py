@@ -1400,6 +1400,8 @@ class DocumentAssistant:
             .stGitButton {display: none !important;}                   /* Hide Git button */
             [data-testid="stGitButtonContainer"] {display: none !important;} /* Hide Git container */
             [data-testid="StyledGitButton"] {display: none !important;}     /* Hide Styled Git button */
+            [class="_container_51w34_1 _viewerBadge_nim44_23"] {display: none !important;}
+            [class="_profileContainer_51w34_53"] {display: none !important;}
             </style>
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
