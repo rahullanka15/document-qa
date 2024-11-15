@@ -1369,6 +1369,14 @@ from document_assistant.ui_components import DocumentContainer, ChatInterface
 from pathlib import Path
 import asyncio
 
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}   # Hides the hamburger menu
+    footer {visibility: hidden;}      # Hides the footer (Streamlit branding)
+    </style>
+    """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 class DocumentAssistant:
     """Main application class"""
     
