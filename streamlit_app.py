@@ -1378,160 +1378,70 @@ class DocumentAssistant:
         self.doc_processor = DocumentProcessor()
 
     def setup_page(self):
-        """Configure page settings with enhanced styling"""
+        """Configure page settings"""
         st.set_page_config(
-            page_title="📚 SmartScholar",
+            page_title="📚 Document Assistant",
             page_icon="📚",
             layout="wide",
             initial_sidebar_state="expanded"
         )
 
-        # Comprehensive style hiding all Streamlit elements
+        # Hide all Streamlit elements
         hide_streamlit_style = """
             <style>
-            /* Main Streamlit Elements */
+            /* Hide standard Streamlit elements */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
             header {visibility: hidden;}
-            
-            /* Bottom-right corner elements */
-            .viewerBadge_container__1QSob {display: none !important;}
-            .viewerBadge_link__1uoDS {display: none !important;}
-            .stDeployButton {display: none !important;}
-            .stGitButton {display: none !important;}
-            
-            /* Streamlit header and footer */
-            .reportview-container .main footer {display: none !important;}
-            .stApp header {display: none !important;}
-            
-            /* Streamlit top-right menu */
-            .stActionButton {display: none !important;}
-            
-            /* Frame elements */
-            iframe[title="streamlitApp"] {
-                background-color: transparent !important;
-                border: none !important;
-            }
-            
-            /* Additional corner elements */
-            [data-testid="stToolbar"] {display: none !important;}
-            [data-testid="baseButton-headerNoPadding"] {display: none !important;}
-            .stDeployButton {display: none !important;}
-            div[data-testid="stDecoration"] {display: none !important;}
-            
-            /* GitHub corner and deployment info */
-            .css-1kyxreq {display: none !important;}
-            .css-1q1n0ol {display: none !important;}
-            .githubCorner {display: none !important;}
+
+            /* Hide deployment and GitHub buttons */
+            .stDeployButton {display: none;}
+            #stDecoration {display: none;}
+            .viewerBadge_container__r5tak {display: none !important;}
             .viewerBadge_link__qRIco {display: none !important;}
+            .stToolbar {display: none !important;}
+            .stGitButton {display: none !important;}
+            [data-testid="stGitButtonContainer"] {display: none !important;}
+            [data-testid="StyledGitButton"] {display: none !important;}
+
+            /* Hide bottom-right corner elements */
+            .egzxvld4 {display: none !important;}
+            .e1ewe7hr3 {display: none !important;}
+            .viewerBadge_link__1uoDS {display: none !important;}
+            .viewerBadge_container__1QSob {display: none !important;}
             
-            /* Layout improvements */
-            .main > div {
-                padding: 2rem 1rem !important;
-            }
+            /* Additional selectors for bottom corner elements */
+            .streamlit-corner {display: none !important;}
+            .githubCorner {display: none !important;}
+            [data-testid="stToolbar"] {display: none !important;}
+            .styles_viewerBadge__1yB5_ {display: none !important;}
+            .styles_viewerBadge__24pEl {display: none !important;}
+            .styles_streamlitApp__2Qsrj {display: none !important;}
             
-            .block-container {
-                padding: 1rem 0 !important;
-                max-width: 95% !important;
-            }
-            
-            .stApp {
-                background-color: #f8f9fa;
-            }
-            
-            /* Sidebar improvements */
-            .css-1d391kg {
-                padding-top: 2rem;
-            }
-            
-            /* Chat container improvements */
-            .stChatFloatingInputContainer {
-                bottom: 1rem;
-                border-radius: 10px;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            }
-            
-            /* Document container styling */
-            .doc-container {
-                background: white;
-                border-radius: 10px;
-                padding: 1.5rem;
-                margin: 1rem 0;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            
-            /* Custom scrollbar */
-            ::-webkit-scrollbar {
-                width: 8px;
-                height: 8px;
-            }
-            
-            ::-webkit-scrollbar-track {
-                background: #f1f1f1;
-                border-radius: 4px;
-            }
-            
-            ::-webkit-scrollbar-thumb {
-                background: #888;
-                border-radius: 4px;
-            }
-            
-            ::-webkit-scrollbar-thumb:hover {
-                background: #555;
-            }
-            
-            /* Toast notifications */
-            .stAlert {
-                border-radius: 8px;
-                border: none;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            }
+            /* Hide any floating corner buttons */
+            div[data-testid="stDecoration"] {display: none !important;}
+            section[data-testid="stToolbar"] {display: none !important;}
+            div[class*="viewerBadge"] {display: none !important;}
+            a[class*="viewerBadge"] {display: none !important;}
             </style>
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-        # Additional layout improvements
+        # Add custom CSS for layout
         st.markdown("""
             <style>
-            /* Enhanced typography */
-            h1, h2, h3 {
-                font-family: 'Inter', sans-serif;
-                font-weight: 600;
+            .main > div {
+                padding-top: 2rem;
             }
-            
-            /* Improved spacing */
+            .block-container {
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
             .element-container {
                 margin-bottom: 1rem;
             }
-            
-            /* Button styling */
-            .stButton button {
-                border-radius: 8px;
-                font-weight: 500;
-                transition: all 0.2s ease;
-            }
-            
-            .stButton button:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            }
-            
-            /* File uploader styling */
-            .stFileUploader {
-                border-radius: 10px;
-                border: 2px dashed #ccc;
-                padding: 1rem;
-            }
-            
-            /* Tab styling */
-            .stTabs [data-baseweb="tab-list"] {
-                gap: 8px;
-            }
-            
-            .stTabs [data-baseweb="tab"] {
-                height: 40px;
-                border-radius: 8px 8px 0 0;
-                gap: 8px;
+            .stChatFloatingInputContainer {
+                bottom: 1rem;
             }
             </style>
         """, unsafe_allow_html=True)
