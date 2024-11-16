@@ -1423,6 +1423,19 @@ class DocumentAssistant:
             section[data-testid="stToolbar"] {display: none !important;}
             div[class*="viewerBadge"] {display: none !important;}
             a[class*="viewerBadge"] {display: none !important;}
+
+            /* Hide Streamlit Deployment Button */
+            ._container_51w34_1 {display: none !important;}
+            .viewerBadge_nim44_23 {display: none !important;}
+            
+            /* Hide Profile Container */
+            ._profileContainer_51w34_53 {display: none !important;}
+            ._profilePreview_51w34_63 {display: none !important;}
+            
+            /* Additional selectors to ensure hiding */
+            [data-testid="stToolbar"] {display: none !important;}
+            .viewerBadge_container__1QSob {display: none !important;}
+            .viewerBadge_link__1uoDS {display: none !important;}
             </style>
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
