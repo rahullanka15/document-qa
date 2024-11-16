@@ -1389,24 +1389,45 @@ class DocumentAssistant:
         # Hide all Streamlit elements
         hide_streamlit_style = """
             <style>
-            #MainMenu {visibility: hidden;}            /* Hide the hamburger menu */
-            footer {visibility: hidden;}               /* Hide the footer */
-            .stDeployButton {display: none;}           /* Hide the deploy button */
-            #stDecoration {display: none;}             /* Hide the decoration */
-            header {visibility: hidden;}               /* Hide the header */
-            .viewerBadge_container__r5tak {display: none !important;}  /* Hide GitHub/deployment buttons */
-            .viewerBadge_link__qRIco {display: none !important;}       /* Hide viewer badge links */
-            .stToolbar {display: none !important;}                     /* Hide the toolbar */
-            .stGitButton {display: none !important;}                   /* Hide Git button */
-            [data-testid="stGitButtonContainer"] {display: none !important;} /* Hide Git container */
-            [data-testid="StyledGitButton"] {display: none !important;}     /* Hide Styled Git button */
-            [class="_container_51w34_1 _viewerBadge_nim44_23"] {display: none !important;}
-            [class="_profileContainer_51w34_53"] {display: none !important;}
+            /* Hide standard Streamlit elements */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+
+            /* Hide deployment and GitHub buttons */
+            .stDeployButton {display: none;}
+            #stDecoration {display: none;}
+            .viewerBadge_container__r5tak {display: none !important;}
+            .viewerBadge_link__qRIco {display: none !important;}
+            .stToolbar {display: none !important;}
+            .stGitButton {display: none !important;}
+            [data-testid="stGitButtonContainer"] {display: none !important;}
+            [data-testid="StyledGitButton"] {display: none !important;}
+
+            /* Hide bottom-right corner elements */
+            .egzxvld4 {display: none !important;}
+            .e1ewe7hr3 {display: none !important;}
+            .viewerBadge_link__1uoDS {display: none !important;}
+            .viewerBadge_container__1QSob {display: none !important;}
+            
+            /* Additional selectors for bottom corner elements */
+            .streamlit-corner {display: none !important;}
+            .githubCorner {display: none !important;}
+            [data-testid="stToolbar"] {display: none !important;}
+            .styles_viewerBadge__1yB5_ {display: none !important;}
+            .styles_viewerBadge__24pEl {display: none !important;}
+            .styles_streamlitApp__2Qsrj {display: none !important;}
+            
+            /* Hide any floating corner buttons */
+            div[data-testid="stDecoration"] {display: none !important;}
+            section[data-testid="stToolbar"] {display: none !important;}
+            div[class*="viewerBadge"] {display: none !important;}
+            a[class*="viewerBadge"] {display: none !important;}
             </style>
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-        # Add custom CSS
+        # Add custom CSS for layout
         st.markdown("""
             <style>
             .main > div {
