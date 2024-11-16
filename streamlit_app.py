@@ -1404,38 +1404,35 @@ class DocumentAssistant:
             [data-testid="stGitButtonContainer"] {display: none !important;}
             [data-testid="StyledGitButton"] {display: none !important;}
 
-            /* Hide bottom-right corner elements */
-            .egzxvld4 {display: none !important;}
-            .e1ewe7hr3 {display: none !important;}
-            .viewerBadge_link__1uoDS {display: none !important;}
-            .viewerBadge_container__1QSob {display: none !important;}
-            
-            /* Additional selectors for bottom corner elements */
-            .streamlit-corner {display: none !important;}
-            .githubCorner {display: none !important;}
-            [data-testid="stToolbar"] {display: none !important;}
-            .styles_viewerBadge__1yB5_ {display: none !important;}
-            .styles_viewerBadge__24pEl {display: none !important;}
-            .styles_streamlitApp__2Qsrj {display: none !important;}
-            
-            /* Hide any floating corner buttons */
-            div[data-testid="stDecoration"] {display: none !important;}
-            section[data-testid="stToolbar"] {display: none !important;}
-            div[class*="viewerBadge"] {display: none !important;}
-            a[class*="viewerBadge"] {display: none !important;}
-
-            /* Hide Streamlit Deployment Button */
-            ._container_51w34_1 {display: none !important;}
-            .viewerBadge_nim44_23 {display: none !important;}
+            /* Hide Streamlit Badge */
+            ._container_51w34_1 {
+                display: none !important;
+            }
+            ._link_51w34_10 {
+                display: none !important;
+            }
             
             /* Hide Profile Container */
-            ._profileContainer_51w34_53 {display: none !important;}
-            ._profilePreview_51w34_63 {display: none !important;}
-            
-            /* Additional selectors to ensure hiding */
-            [data-testid="stToolbar"] {display: none !important;}
-            .viewerBadge_container__1QSob {display: none !important;}
-            .viewerBadge_link__1uoDS {display: none !important;}
+            ._profileContainer_51w34_53 {
+                display: none !important;
+            }
+            ._profilePreview_51w34_63 {
+                display: none !important;
+            }
+            ._profileImage_51w34_76 {
+                display: none !important;
+            }
+
+            /* Additional backup selectors */
+            [data-testid="appCreatorAvatar"] {
+                display: none !important;
+            }
+            a[href*="streamlit.io/cloud"] {
+                display: none !important;
+            }
+            a[href*="share.streamlit.io/user"] {
+                display: none !important;
+            }
             </style>
         """
         st.markdown(hide_streamlit_style, unsafe_allow_html=True)
