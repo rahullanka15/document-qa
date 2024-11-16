@@ -1386,85 +1386,72 @@ class DocumentAssistant:
             initial_sidebar_state="expanded"
         )
 
-        # Hide all Streamlit elements
-        hide_streamlit_style = """
+        # Hide specific elements with exact targeting
+        hide_specific_elements = """
             <style>
-            /* Hide standard Streamlit elements */
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-
-            footer:after {
-                content:'goodbye'; 
-                visibility: visible;
-                display: block;
+            /* Target the main container elements */
+            div[class*="streamlitAppContainer"] {
                 position: relative;
-                #background-color: red;
-                padding: 5px;
-                top: 2px;
             }
 
-            /* Hide deployment and GitHub buttons */
-            .stDeployButton {display: none;}
-            #stDecoration {display: none;}
-            .viewerBadge_container__r5tak {display: none !important;}
-            .viewerBadge_link__qRIco {display: none !important;}
-            .stToolbar {display: none !important;}
-            .stGitButton {display: none !important;}
-            [data-testid="stGitButtonContainer"] {display: none !important;}
-            [data-testid="StyledGitButton"] {display: none !important;}
-
-            /* Hide Streamlit Badge */
-            ._container_51w34_1 {
+            /* Hide Streamlit badge (both container and specific elements) */
+            div[class*="stateContainer"] > a[href*="streamlit.io/cloud"] {
                 display: none !important;
-            }
-            ._link_51w34_10 {
-                display: none;
+                visibility: hidden !important;
             }
             
-            /* Hide Profile Container */
-            ._profileContainer_51w34_53 {
+            ._container_51w34_1 {
                 display: none !important;
-            }
-            ._profilePreview_51w34_63 {
-                display: none !important;
-            }
-            ._profileImage_51w34_76 {
-                display: none !important;
+                visibility: hidden !important;
             }
 
-            /* Additional backup selectors */
-            [data-testid="appCreatorAvatar"] {
+            /* Hide Profile Container (both container and specific elements) */
+            div[class*="stateContainer"] > div[class*="_profileContainer"] {
                 display: none !important;
+                visibility: hidden !important;
             }
-            a[href*="streamlit.io/cloud"] {
+
+            /* Target viewerBadge specifically */
+            div[class*="viewerBadge"] {
                 display: none !important;
+                visibility: hidden !important;
             }
-            a[href*="share.streamlit.io/user"] {
+
+            /* Target by SVG */
+            div[class*="stateContainer"] svg[width="303"][height="165"] {
                 display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* Target profile image */
+            img[data-testid="appCreatorAvatar"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* Additional backup targeting */
+            a[href*="share.streamlit.io"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* Target containers by full path */
+            #root > div > div > div > div > a[href*="streamlit.io/cloud"],
+            #root > div > div > div > div > div[class*="_profileContainer"] {
+                display: none !important;
+                visibility: hidden !important;
+            }
+
+            /* Force hide any remaining elements */
+            ._link_51w34_10,
+            ._profilePreview_51w34_63,
+            ._profileImage_51w34_76 {
+                display: none !important;
+                visibility: hidden !important;
             }
             </style>
         """
-        st.markdown(hide_streamlit_style, unsafe_allow_html=True)
-
-        # Add custom CSS for layout
-        st.markdown("""
-            <style>
-            .main > div {
-                padding-top: 2rem;
-            }
-            .block-container {
-                padding-top: 1rem;
-                padding-bottom: 1rem;
-            }
-            .element-container {
-                margin-bottom: 1rem;
-            }
-            .stChatFloatingInputContainer {
-                bottom: 1rem;
-            }
-            </style>
-        """, unsafe_allow_html=True)
+        st.markdown(hide_specific_elements, unsafe_allow_html=True)
 
     def render_sidebar(self):
         """Render sidebar with file upload and document management"""
