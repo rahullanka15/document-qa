@@ -1419,7 +1419,7 @@ class DocumentAssistant:
                 display: none !important;
             }
             ._link_51w34_10 {
-                display: none !important;
+                display: none;
             }
             
             /* Hide Profile Container */
